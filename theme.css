@@ -1,0 +1,61 @@
+html,body {
+    margin:0px;
+    padding: 0px;
+}
+p {
+    margin: 0px;
+    padding: 0px;
+}
+table {
+    width: 100%;
+    height: 100%;
+    border:1px solid #000000;
+}
+table.floorplan {
+    border:0px solid #000000;
+    border-collapse: collapse;
+}
+td {
+    /*border: 0px dotted #FF0000;*/
+}
+.floor {
+    border: 0px solid #000000;
+}
+.wall {
+    background: #000000;
+}
+.seat_available {
+    background: #00ff00;
+    border:1px solid #000000;
+}
+.seat_available:hover {
+    background: #5555bb;
+}
+.seat_taken {
+    background: #ff0000;
+    border:1px solid #000000;
+}
+.seat_taken:hover {
+    background: #bb5555;
+}
+.stage {
+    background: #AA00AA;
+}
+.crew_area {
+    background: #1FCDB0;
+}
+.entrance {
+    background: #6699CD;
+}
+.your_seat {
+    background: #FFFF00;
+    border:1px solid #000000;
+}
+#book_seat_btn {
+    width: 100%;
+    height: 50px;
+    display: none;
+}
+#book_view {
+    /*display: none;*/
+}
