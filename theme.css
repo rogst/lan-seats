@@ -29,14 +29,14 @@ td {
     border:1px solid #000000;
 }
 .seat_available:hover {
-    background: #5555bb;
+    background: #00aa00;
 }
 .seat_taken {
     background: #ff0000;
     border:1px solid #000000;
 }
 .seat_taken:hover {
-    background: #bb5555;
+    background: #aa0000;
 }
 .stage {
     background: #AA00AA;

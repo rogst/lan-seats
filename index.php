@@ -1,58 +1,56 @@
 <?php
 session_start();
 
+require_once('config.php');
 require_once('lib/container.php');
+require_once('lib/dal.php');
 
-$user = new Container();
+$context = null;
+if (isset($_SESSION['context']) && $_SESSION['context'] != null) {
+    $context = unserialize($_SESSION['context']);
+} else {
+    $context = new Container();
+    $context->loggedIn = false;
+    $context->hasBooked = false;
+}
 
-$_SESSION['LoggedIn'] = isset($_SESSION['LoggedIn']) ? $_SESSION['LoggedIn'] : false;
-$hasBooked = false;
+// Check if context has been loaded
+if ($context == null) {
+    $_SESSION['context'] = null;
+    exit('Failed to load context, try and reload the page.');
+}
+
+$database = new DAL($config);
 
 $mysqli = new mysqli('localhost', 'seatbooking', 'FGP6qGsh7jfqdTLL', 'seatbooking');
 if ($mysqli->connect_errno) {
-    echo('db connect failed');
-    exit;
+    exit('db connect failed');
 }
 
 if (isset($_GET['get']) and $_GET['get'] == 'seat') {
-    $xpos = $_GET['x'];
-    $ypos = $_GET['y'];
-    $query = 'SELECT t.holder_name FROM floorplan f INNER JOIN tickets t on f.ticket = t.id WHERE f.x = '.$xpos.' and f.y = '.$ypos.';';
-    $result = $mysqli->query($query);
-    if ($mysqli->error) { echo($mysqli->error); exit; }
-    $row = $result->fetch_assoc();
-    $result->free();
-    echo($row['holder_name']);
+    $data = $database->Query('getTicketHolderName', array($_GET['x'],$_GET['y']));
+    echo($data[0]['holder_name']);
     exit;
 }
 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['seat_number']) && isset($_POST['seat_row'])) {
-        $seatnr = $_POST['seat_number'];
-        $seatrow = $_POST['seat_row'];
-        $query = 'update floorplan set type = 3,ticket='.$_SESSION['TicketInfo']['id'].',reservation_date=\''.date('Y-m-d H:i:s').'\' where x = '.$seatnr.' and y = '.$seatrow.';';
-        $mysqli->query($query);
-        if ($mysqli->error) { echo($mysqli->error); exit; }
+        $database->Query('bookSeat', array($_POST['seat_number'], $_POST['seat_row'], $context->ticket['id'], date('Y-m-d H:i:s')));
     } elseif (isset($_POST['submitlogin'])) {
-        $ticket_code = $mysqli->real_escape_string($_POST['code']);
-        $ticket_password = $mysqli->real_escape_string($_POST['password']);
-        $query = 'select * from tickets where ticket_code = \''.$ticket_code.'\' and ticket_password = \''.$ticket_password.'\';';
-        $result = $mysqli->query($query);
-        $row = $result->fetch_assoc();
-        $result->free();
-        if ($row != null) {
-            $_SESSION['TicketInfo'] = $row;
-            $_SESSION['LoggedIn'] = true;
+        $code = $mysqli->real_escape_string($_POST['code']);
+        $password = $mysqli->real_escape_string($_POST['password']);
+        $data = $database->Query('getTicket', array($code, $password));
+        if ($data != null) {
+            $context->ticket = $data[0];
+            $context->loggedIn = true;
         }
     } elseif (isset($_POST['submitlogout'])) {
-        $_SESSION['LoggedIn'] = false;
-        $_SESSION['TicketInfo'] = null;
+        $context->loggedIn = false;
+        $context->ticket = null;
     } elseif (isset($_POST['submitunbook'])) {
-        $query = 'update floorplan set type = 2,ticket=null,reservation_date=null where ticket = '.$_SESSION['TicketInfo']['id'].';';
-        $mysqli->query($query);
-        if ($mysqli->error) { echo($mysqli->error); exit; }
-        $hasBooked = false;
+        $database->Query('unbookSeat', array($context->ticket['id']));
+        $context->hasBooked = false;
     }
 }
 
@@ -68,29 +66,27 @@ $style = array(
     8 => array('your_seat', '#FFFF00')
 );
 
-$_SESSION['hasBooked'] = false;
-$query = 'select x, y, type, ticket from floorplan order by y,x;';
-$result = $mysqli->query($query);
-$map = array();
+$data = $database->Query('getFloorplan', array(), 'ENUM');
+$floorplan = array();
 $lastrow = 0;
 $currentrow = array();
-while ($row = $result->fetch_row()) {
+foreach ($data as $row) {
     if ($row[1] != $lastrow) {
         $lastrow = $row[1];
-        $map[$row[1]] = $currentrow;
+        $floorplan[] = $currentrow;
         $currentrow = array();
     }
 
     $type = $row[2];
-    if ($_SESSION['LoggedIn'] == true) {
-        if ($_SESSION['TicketInfo']['id'] == $row[3]) {
+    if ($context->loggedIn == true) {
+        if ($context->ticket['id'] == $row[3]) {
             $type = 8;
-            $hasBooked = true;
+            $context->hasBooked = true;
         }
     }
-    $currentrow[$row[0]] = $type;
+    $currentrow[] = $type;
 }
-$map[$row[1]] = $currentrow;
+$floorplan[] = $currentrow;
 
 ?>
 <html>
@@ -106,12 +102,12 @@ $map[$row[1]] = $currentrow;
         <tr>
             <td width="75%">
                 <table class="floorplan">
-                <?php foreach($map as $row): ?>
+                <?php foreach($floorplan as $row): ?>
                     <tr>
                     <?php foreach($row as $col => $value): ?>
-                        <?php if ($_SESSION['LoggedIn'] == true && $hasBooked == false && $value == 2): ?>
+                        <?php if ($context->loggedIn == true && $context->hasBooked == false && $value == 2): ?>
                         <td class='<?php echo($style[$value][0]); ?>' onclick='select_seat(this);'></td>
-                        <?php elseif ($_SESSION['LoggedIn'] == true && $value == 3): ?>
+                        <?php elseif ($context->loggedIn == true && $value == 3): ?>
                         <td class='<?php echo($style[$value][0]); ?>' onclick='view_seat(this);'></td>
                         <?php else: ?>
                         <td class='<?php echo($style[$value][0]); ?>'></td>
@@ -126,11 +122,11 @@ $map[$row[1]] = $currentrow;
                     <tr>
                         <td height="100%" valign="top">
                             <div id="login_view">
-                                <?php if ($_SESSION['LoggedIn'] == true): ?>
-                                <p>Välkommen <?php echo($_SESSION['TicketInfo']['holder_name']); ?></p>
+                                <?php if ($context->loggedIn == true): ?>
+                                <p>Välkommen <?php echo($context->ticket['holder_name']); ?></p>
                                 <form id="login_form" method="POST">
                                     <input type="submit" name="submitlogout" value="Logga ut">
-                                    <?php if ($hasBooked == true): ?>
+                                    <?php if ($context->hasBooked == true): ?>
                                         <input type="submit" name="submitunbook" value="Avboka plats">
                                     <?php endif; ?>
                                 </form> 
@@ -170,3 +166,7 @@ $map[$row[1]] = $currentrow;
     </table>
 </body>
 </html>
+
+<?php
+$_SESSION['context'] = serialize($context);
+?>
