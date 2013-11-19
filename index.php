@@ -4,6 +4,7 @@ session_start();
 require_once('config.php');
 require_once('lib/container.php');
 require_once('lib/dal.php');
+require_once('lib/helper_functions.php');
 
 $context = null;
 if (isset($_SESSION['context']) && $_SESSION['context'] != null) {
@@ -27,16 +28,41 @@ if ($mysqli->connect_errno) {
     exit('db connect failed');
 }
 
-if (isset($_GET['get']) and $_GET['get'] == 'seat') {
-    $data = $database->Query('getTicketHolderName', array($_GET['x'],$_GET['y']));
-    echo($data[0]['holder_name']);
+if (isset($_GET['action']) and $_GET['action'] == 'getseat') {
+    $data = $database->Query('getSeatAndRow', array($_GET['x'],$_GET['y']));
+    if ($config->displayRowAsLetter) {
+        echo(json_encode(array($data[0]['seat'], chr($data[0]['row'] + 64))));
+    } else {
+        echo(json_encode(array($data[0]['seat'], $data[0]['row'])));
+    }
     exit;
 }
 
+if (isset($_GET['action']) and $_GET['action'] == 'getholdername') {
+    $data = $database->Query('getTicketHolderName', array($_GET['x'],$_GET['y']));
+    echo(json_encode($data[0]['holder_name']));
+    exit;
+}
+
+if (CheckArrayKeys($_GET, array('action','x','y')) and $_GET['action'] == 'bookseat') {
+    $database->Query('bookSeat', array($_GET['x'], $_GET['y'], $context->ticket['id'], date('Y-m-d H:i:s')));
+    $data = $database->Query('getSeat', array($_GET['x'], $_GET['y']));
+    if ($data[0]['ticket'] == $context->ticket['id']) {
+        echo(json_encode('success'));
+    } else {
+        echo(json_encode('failed')); 
+    }
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['seat_number']) && isset($_POST['seat_row'])) {
-        $database->Query('bookSeat', array($_POST['seat_number'], $_POST['seat_row'], $context->ticket['id'], date('Y-m-d H:i:s')));
+        $data = $database->Query('getSeat', array($_POST['seat_number'], $_POST['seat_row']));
+        if ($data[0]['ticket'] == null) {
+            $database->Query('bookSeat', array($_POST['seat_number'], $_POST['seat_row'], $context->ticket['id'], date('Y-m-d H:i:s')));
+        } else {
+            
+        }
     } elseif (isset($_POST['submitlogin'])) {
         $code = $mysqli->real_escape_string($_POST['code']);
         $password = $mysqli->real_escape_string($_POST['password']);
@@ -48,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (isset($_POST['submitlogout'])) {
         $context->loggedIn = false;
         $context->ticket = null;
+        $context->hasBooked = false;
     } elseif (isset($_POST['submitunbook'])) {
         $database->Query('unbookSeat', array($context->ticket['id']));
         $context->hasBooked = false;
@@ -123,7 +150,7 @@ $floorplan[] = $currentrow;
                         <td height="100%" valign="top">
                             <div id="login_view">
                                 <?php if ($context->loggedIn == true): ?>
-                                <p>Välkommen <?php echo($context->ticket['holder_name']); ?></p>
+                                <p><b>Välkommen <?php echo($context->ticket['holder_name']); ?></b></p>
                                 <form id="login_form" method="POST">
                                     <input type="submit" name="submitlogout" value="Logga ut">
                                     <?php if ($context->hasBooked == true): ?>
@@ -131,7 +158,7 @@ $floorplan[] = $currentrow;
                                     <?php endif; ?>
                                 </form> 
                                 <?php else: ?>
-                                <p>Logga in för att boka din plats</p>
+                                <p><b>Logga in för att boka din plats</b></p>
                                 <form id="login_form" method="POST">
                                     <p>Bokningskod:</p><input type="text" name="code"><br>
                                     <p>Lösenord:</p><input type="password" name="password"><br>

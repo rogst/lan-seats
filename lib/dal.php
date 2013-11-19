@@ -6,7 +6,9 @@ class DAL {
 
     private function LoadQueries() {
         $this->queries['getTicketHolderName'] = 'SELECT t.holder_name FROM floorplan f INNER JOIN tickets t on f.ticket = t.id WHERE f.x = %1$d AND f.y = %2$d;';
-        $this->queries['bookSeat'] = 'UPDATE floorplan SET type = 3, ticket = %3$d, reservation_date = \'%4$s\' WHERE x = %1$d AND y = %2$d;';
+        $this->queries['getSeatAndRow'] = 'SELECT seat,row FROM floorplan WHERE x = %1$d AND y = %2$d;';
+        $this->queries['bookSeat'] = 'UPDATE floorplan SET type = 3, ticket = %3$d, reservation_date = \'%4$s\' WHERE x = %1$d AND y = %2$d AND ticket is null;';
+        $this->queries['getSeat'] = 'SELECT * FROM floorplan WHERE x = %1$d AND y = %2$d;';
         $this->queries['getTicket'] = 'SELECT * FROM tickets WHERE ticket_code = \'%1$s\' AND ticket_password = \'%2$s\';';
         $this->queries['unbookSeat'] = 'UPDATE floorplan SET type = 2, ticket = null, reservation_date = null WHERE ticket = %1$d;';
         $this->queries['getFloorplan'] = 'SELECT x, y, type, ticket FROM floorplan ORDER BY y, x;';

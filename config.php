@@ -17,5 +17,7 @@ $config->databaseUser = 'username for database access';
 $config->databasePass = 'password for database access';
 $config->databaseCharset = 'utf8';
 
+$config->displayRowAsLetter = true;
+
 include_once('configlocal.php');
 ?>
