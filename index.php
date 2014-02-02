@@ -23,11 +23,6 @@ if ($context == null) {
 
 $database = new DAL($config);
 
-$mysqli = new mysqli('localhost', 'seatbooking', 'FGP6qGsh7jfqdTLL', 'seatbooking');
-if ($mysqli->connect_errno) {
-    exit('db connect failed');
-}
-
 if (isset($_GET['action']) and $_GET['action'] == 'getseat') {
     $data = $database->Query('getSeatAndRow', array($_GET['x'],$_GET['y']));
     if ($config->displayRowAsLetter) {
@@ -64,9 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
         }
     } elseif (isset($_POST['submitlogin'])) {
-        $code = $mysqli->real_escape_string($_POST['code']);
-        $password = $mysqli->real_escape_string($_POST['password']);
-        $data = $database->Query('getTicket', array($code, $password));
+        $data = $database->Query('getTicket', array($_POST['code'], $_POST['password']));
         if ($data != null) {
             $context->ticket = $data[0];
             $context->loggedIn = true;
@@ -81,17 +74,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-$style = array(
-    0 => array('floor', '#FFFFFF'),
-    1 => array('wall', '#000000'),
-    2 => array('seat_available', '#00FF00'),
-    3 => array('seat_taken', '#FF0000'),
-    4 => array('stage', '#AA00AA'),
-    5 => array('crew_area', '#1FCDB0'),
-    6 => array('exit', '#666666'),
-    7 => array('entrance', '#6699CD'),
-    8 => array('your_seat', '#FFFF00')
-);
+$inlineCSS = '';
+$style = array();
+$data = $database->Query('getFloortypes');
+foreach ($data as $row) {
+    $style[$row['id']] = array($row['codename'], $row['displayname'], $row['color']);
+    $border = '';
+    if ($row['border'] == 1) {
+        $border = 'border: 1px solid #000000;';
+    }
+    if ($row['color'] != null ) {
+        $inlineCSS .= '.'.$row['codename'].' { background: '.$row['color'].'; '.$border.' }'."\n";
+    }
+    if ($context->loggedIn == true && $row['hovercolor'] != null) {
+        $inlineCSS .= '.'.$row['codename'].':hover { background: '.$row['hovercolor'].'; '.$border.' }'."\n";
+    }
+}
 
 $data = $database->Query('getFloorplan', array(), 'ENUM');
 $floorplan = array();
@@ -115,6 +113,7 @@ foreach ($data as $row) {
 }
 $floorplan[] = $currentrow;
 
+$inlineCSS .= '.seat { border: 1px solid #000000; }'."\n";
 ?>
 <html>
 <head>
@@ -123,6 +122,9 @@ $floorplan[] = $currentrow;
     <link rel="stylesheet" type="text/css" href="theme.css"/>
     <script src="jquery-2.0.3.min.js"></script>
     <script src="index.js"></script>
+    <style>
+<?php echo($inlineCSS); ?>
+    </style>
 </head>
 <body>
     <table>
@@ -132,10 +134,10 @@ $floorplan[] = $currentrow;
                 <?php foreach($floorplan as $row): ?>
                     <tr>
                     <?php foreach($row as $col => $value): ?>
-                        <?php if ($context->loggedIn == true && $context->hasBooked == false && $value == 2): ?>
-                        <td class='<?php echo($style[$value][0]); ?>' onclick='select_seat(this);'></td>
-                        <?php elseif ($context->loggedIn == true && $value == 3): ?>
-                        <td class='<?php echo($style[$value][0]); ?>' onclick='view_seat(this);'></td>
+                        <?php if ($context->loggedIn == true && $context->hasBooked == false && $value == 6): ?>
+                        <td class='seat <?php echo($style[$value][0]); ?>' onclick='select_seat(this);'></td>
+                        <?php elseif ($context->loggedIn == true && $value == 7): ?>
+                        <td class='seat <?php echo($style[$value][0]); ?>' onclick='view_seat(this);'></td>
                         <?php else: ?>
                         <td class='<?php echo($style[$value][0]); ?>'></td>
                         <?php endif; ?>
@@ -145,7 +147,7 @@ $floorplan[] = $currentrow;
                 </table>
             </td>
             <td>
-                <table>
+                <table class="sidebar">
                     <tr>
                         <td height="100%" valign="top">
                             <div id="login_view">
@@ -181,7 +183,9 @@ $floorplan[] = $currentrow;
                             <table>
                             <?php foreach( $style as $legend): ?>
                             <tr>
-                                <td style='background: <?php echo($legend[1]); ?>;'>&nbsp;</td><td><?php echo($legend[0]); ?></td>
+                                <?php if ($legend[2] != null): ?>
+                                <td style='background: <?php echo($legend[2]); ?>;'>&nbsp;</td><td><?php echo($legend[1]); ?></td>
+                                <?php endif; ?>
                             </tr>
                             <?php endforeach; ?>
                             </table>

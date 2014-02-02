@@ -19,7 +19,7 @@ for ($y = 0; $y < $y_max; $y++) {
     $x_max = count($floor[$y]);
     for ($x = 0; $x < $x_max; $x++) {
         $type = $floor[$y][$x];
-        if ($type == 2 || $type == 3) {
+        if ($type == 6 || $type == 7) {
             $query = 'insert into `floorplan` (x, y, type, row, seat) values ('.$x.','.$y.','.$type.','.$row.','.$seat.');';
             $seat++;
             $newrow = true;
