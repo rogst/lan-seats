@@ -1,8 +1,9 @@
 <?php
 
+require_once('config.php');
 require_once('floorplan.php');
 
-$mysqli = new mysqli('localhost', 'seatbooking', 'FGP6qGsh7jfqdTLL', 'seatbooking');
+$mysqli = new mysqli($config->databaseHost, $config->databaseName, $config->databasePass, $config->databaseUser);
 
 if ($mysqli->connect_errno) {
     echo('db connect failed');
