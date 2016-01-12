@@ -3,7 +3,7 @@
 require_once('config.php');
 require_once('floorplan.php');
 
-$mysqli = new mysqli($config->databaseHost, $config->databaseName, $config->databasePass, $config->databaseUser);
+$mysqli = new mysqli($config->databaseHost, $config->databaseUser, $config->databasePass, $config->databaseName);
 
 if ($mysqli->connect_errno) {
     echo('db connect failed');

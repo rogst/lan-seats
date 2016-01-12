@@ -18,9 +18,9 @@ class DAL {
     public function __construct($config) {
         $this->connection = new mysqli(
             $config->databaseHost
-            , $config->databaseName
+            , $config->databaseUser
             , $config->databasePass
-            , $config->databaseUser);
+            , $config->databaseName);
         if ($this->connection->connect_errno) {
             exit('Connection to database failed');
         }
