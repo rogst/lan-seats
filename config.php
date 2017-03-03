@@ -19,5 +19,5 @@ $config->databaseCharset = 'utf8';
 
 $config->displayRowAsLetter = true;
 
-include_once('configlocal.php');
+@include_once('configlocal.php');
 ?>

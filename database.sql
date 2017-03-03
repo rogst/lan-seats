@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `floorplan` (
 --
 
 CREATE TABLE IF NOT EXISTS `floortypes` (
-      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `id` int(11) NOT NULL,
       `codename` varchar(50) NOT NULL,
       `displayname` varchar(50) DEFAULT NULL,
       `color` varchar(7) DEFAULT NULL,

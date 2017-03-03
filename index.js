@@ -41,7 +41,7 @@ function book_selected_seat() {
     $.getJSON(url,function(data,status){
         var infospan = document.getElementById('selected_seat_info');
         if (data == 'success') {
-            location.reload();
+            window.location = '/';
         } else {
             infospan.style.color = '#FF0000';
             infospan.style.fontWeight = 'bold';
